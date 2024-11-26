@@ -15,9 +15,9 @@ public class SampleJob : IJob
 
     public Task Execute(IJobExecutionContext context)
     {
-        Console.WriteLine("Hello from Quartz!");
+        // Console.WriteLine("Hello from Quartz!");
         
-        _logger.LogInformation("Hello from Quartz!");
+        _logger.LogInformation($"Hello from Quartz! {DateTime.Now}");
 
         return Task.CompletedTask;
     }

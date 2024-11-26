@@ -1,8 +1,10 @@
 namespace Quartz_Demo_Api;
 
+using System.Collections.Specialized;
 using NLog;
 using NLog.Web;
 using Quartz_Demo_Api.Jobs;
+using Quartz_Demo_Api.Listener;
 using Quartz;
 using Quartz.AspNetCore;
 
@@ -12,6 +14,8 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        var config = builder.Configuration;
+
         var logger = CreateLoger(builder);
 
         logger.Info("App Start.");
@@ -19,26 +23,39 @@ public class Program
         var services = builder.Services;
 
         // Add services to the container.
-        services.AddAuthorization();
+        // services.AddAuthorization();
+        services.AddControllers();
 
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
 
+        // base configuration for DI, read from appSettings.json
+        services.Configure<QuartzOptions>(config.GetSection("Quartz"));
+
+        // if you are using persistent job store, you might want to alter some options
+        services.Configure<QuartzOptions>(options =>
+        {
+            options.Scheduling.IgnoreDuplicates = true; // default: false
+            options.Scheduling.OverWriteExistingData = true; // default: true
+        });
+
+
         services.AddQuartz(q =>
         {
             // base Quartz scheduler, job and trigger configuration
 
-            // Just use the name of your job that you created in the Jobs folder.
-            var jobKey = new JobKey("SampleJob");
-            q.AddJob<SampleJob>(opts => opts.WithIdentity(jobKey));
+            q.UsePersistentStore(store =>
+            {
+                store.UseProperties = true;
 
-            q.AddTrigger(opts => opts
-                                 .ForJob(jobKey)
-                                 .WithIdentity("SampleJob-trigger")
-                                 //This Cron interval can be described as "run every minute" (when second is zero)
-                                 .WithCronSchedule("0 * * ? * *")
-            );
+                // var quartzDbConnectionStr = config.GetConnectionString("QuartzDb");
+                // store.UseOracle(quartzDbConnectionStr);
+
+                store.UseSystemTextJsonSerializer();
+            });
+
+            q.AddJobListener<MyJobListener>();
         });
 
         // ASP.NET Core hosting
@@ -50,6 +67,10 @@ public class Program
 
         var app = builder.Build();
 
+
+        app.UseRouting();
+        app.MapControllers();
+
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
@@ -58,28 +79,6 @@ public class Program
         }
 
         app.UseHttpsRedirection();
-
-        app.UseAuthorization();
-
-        var summaries = new[]
-        {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
-
-        app.MapGet("/weatherforecast", (HttpContext httpContext) =>
-           {
-               var forecast = Enumerable.Range(1, 5).Select(index =>
-                                            new WeatherForecast
-                                            {
-                                                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                                                TemperatureC = Random.Shared.Next(-20, 55),
-                                                Summary = summaries[Random.Shared.Next(summaries.Length)]
-                                            })
-                                        .ToArray();
-               return forecast;
-           })
-           .WithName("GetWeatherForecast")
-           .WithOpenApi();
 
         app.Run();
     }
