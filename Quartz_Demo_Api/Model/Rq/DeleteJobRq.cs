@@ -6,6 +6,4 @@ public class DeleteJobRq
 {
     [Required]
     public string JobKey { get; set; }
-
-    public string? GroupName { get; set; }
 }
