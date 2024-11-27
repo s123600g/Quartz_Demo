@@ -46,7 +46,7 @@ public class JobManagementController : ControllerBase
         var trigger = TriggerBuilder.Create()
                                     .WithIdentity(triggerKey)
                                     .WithDescription("Sample Trigger Test")
-                                    .StartAt(DateTime.Now.AddMinutes(1))
+                                    .StartAt(DateTime.Now.AddSeconds(30))
                                     .Build();
 
         await _scheduler.ScheduleJob(job, trigger);

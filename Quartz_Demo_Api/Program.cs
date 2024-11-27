@@ -39,8 +39,7 @@ public class Program
             options.Scheduling.IgnoreDuplicates = true; // default: false
             options.Scheduling.OverWriteExistingData = true; // default: true
         });
-
-
+        
         services.AddQuartz(q =>
         {
             // base Quartz scheduler, job and trigger configuration
@@ -48,9 +47,6 @@ public class Program
             q.UsePersistentStore(store =>
             {
                 store.UseProperties = true;
-
-                // var quartzDbConnectionStr = config.GetConnectionString("QuartzDb");
-                // store.UseOracle(quartzDbConnectionStr);
 
                 store.UseSystemTextJsonSerializer();
             });
